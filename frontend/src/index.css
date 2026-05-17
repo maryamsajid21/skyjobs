@@ -1,0 +1,459 @@
+/*
+ * SkyJobs — Global Design System
+ * ================================
+ * This file is the single source of truth for the entire UI.
+ * It establishes:
+ *   1. Design tokens (CSS custom properties)
+ *   2. The body background gradient that all glassmorphism panels rely on
+ *   3. Glassmorphism utility classes (.glass, .glass-strong, .glass-dark, .glass-hero)
+ *   4. Entry animations (one-shot only — no infinite decorative animations)
+ *   5. Reusable button styles (.btn-primary, .btn-cta, .btn-outline, .btn-outline-hero)
+ *   6. Layout primitives (.page, .container, .section)
+ *   7. Accessibility overrides (focus ring, reduced-motion)
+ *
+ * GLASSMORPHISM RECIPE
+ * ─────────────────────
+ * Three CSS properties combine to create the glass effect:
+ *   a) background: rgba(255,255,255, N)  ← semi-transparent white; N = 0.13–0.86
+ *   b) backdrop-filter: blur(Xpx) saturate(Y%)  ← blurs content behind the element
+ *   c) border: 1px solid rgba(255,255,255, M)   ← bright edge, simulates glass rim
+ *   d) box-shadow with inset 0 1px 0 rgba(255,255,255, P)  ← top "glass reflection"
+ *
+ * The body gradient is REQUIRED — without colourful content behind a glass panel
+ * the blur produces a washed-out grey. The multi-spot radial gradient provides the
+ * colour variation that makes glass panels beautiful.
+ *
+ * ANIMATION RULES (from ui-ux-pro-max design skill)
+ * ────────────────────────────────────────────────────
+ *   • Only entry animations (fadeUp, scaleIn) — no infinite decorative loops.
+ *   • Duration 0.4–0.5s with cubic-bezier(0.4,0,0.2,1) ease.
+ *   • Use transform and opacity only — GPU-composited, no layout thrashing.
+ *   • Respect prefers-reduced-motion (see bottom of file).
+ */
+
+/* ── 1. External dependencies ──────────────────────────────────────────── */
+
+@import "tailwindcss";
+
+/*
+ * Poppins — headings, labels, badges, numbers (weights 400–900)
+ * Open Sans — body text, descriptions, secondary text (weights 300–700)
+ * display=swap ensures text is visible while fonts load (FOUT not FOIT).
+ */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap');
+
+
+/* ── 2. Design tokens ──────────────────────────────────────────────────── */
+
+:root {
+  /* Brand colours */
+  --primary:       #0369A1;    /* sky blue — primary interactive colour */
+  --primary-light: #0EA5E9;    /* vibrant cyan — accents, gradients, glows */
+  --primary-dark:  #075985;    /* deep ocean — gradient start, dark contexts */
+  --cta:           #22C55E;    /* brand green — "Jobs" wordmark, success actions */
+  --cta-dark:      #16A34A;    /* dark green — gradient start for CTA buttons */
+  --bg:            #F0F9FF;    /* lightest sky blue — fallback page background */
+  --text:          #0C4A6E;    /* deep navy — primary text on light backgrounds */
+  --text-muted:    #64748B;    /* slate-500 — secondary/helper text */
+  --radius:        16px;       /* default card border-radius */
+  --transition:    all 0.22s cubic-bezier(0.4,0,0.2,1);  /* snappy ease-in-out */
+
+  /* Glassmorphism — opacity values differ per context:
+     .glass      (0.72) — standard cards on light body gradient
+     .glass-strong (0.86) — auth/form panels needing higher legibility
+     .glass-dark (0.72 blue) — panels ON gradient headers (dark context)
+     .glass-hero (0.13) — ultra-transparent panels ON dark hero sections  */
+  --glass-bg:          rgba(255,255,255,0.72);
+  --glass-bg-strong:   rgba(255,255,255,0.86);
+  --glass-bg-dark:     rgba(12,74,110,0.72);     /* navy glass on dark backgrounds */
+  --glass-bg-hero:     rgba(255,255,255,0.13);   /* nearly invisible on hero */
+  --glass-border:      rgba(255,255,255,0.85);   /* bright edge on light glass */
+  --glass-border-dark: rgba(14,165,233,0.22);    /* cyan edge on dark glass */
+  --glass-blur:        blur(18px) saturate(180%);   /* standard blur + saturation boost */
+  --glass-blur-strong: blur(28px) saturate(200%);  /* heavier blur for strong glass */
+
+  /* Shadows — all use brand blue (rgba(3,105,161,...)) for tonal consistency */
+  --shadow-sm:   0 2px 8px rgba(3,105,161,0.08);    /* subtle, for inputs */
+  --shadow-md:   0 6px 24px rgba(3,105,161,0.12);   /* standard card shadow */
+  --shadow-lg:   0 14px 50px rgba(3,105,161,0.16);  /* prominent panels */
+  --shadow-glow: 0 0 30px rgba(14,165,233,0.22);    /* cyan glow on hero elements */
+}
+
+
+/* ── 3. Base resets ────────────────────────────────────────────────────── */
+
+/* Smooth anchor scroll — CSS-only, no JS required */
+html { scroll-behavior: smooth; }
+
+/* Universal box-sizing + margin/padding reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+/* ── 4. Body gradient background ──────────────────────────────────────── */
+
+/*
+ * WHY: Glassmorphism glass panels need colourful content behind them to look
+ * good. Without this gradient, blur() produces washed-out grey.
+ *
+ * Five overlapping layers (bottom to top):
+ *   1. linear-gradient base: light-blue sky (#f0f9ff → #dbeafe → #e0e7ff → #dcfce7)
+ *   2. Indigo radial spot (top-left) — depth, creative energy
+ *   3. Cyan radial spot (top-right) — sky / air
+ *   4. Green radial spot (bottom-center) — growth / success
+ *   5. Purple radial spot (left edge) — premium feel
+ *
+ * background-attachment: fixed — the gradient stays still as the page scrolls,
+ * so glass cards "slide over" the gradient. Creates a parallax depth effect.
+ */
+body {
+  font-family: 'Open Sans', system-ui, sans-serif;
+  background-color: #dbeafe;   /* fallback if radial-gradient is unsupported */
+  background-image:
+    radial-gradient(ellipse 70% 50% at 14%  0%,  rgba(99,102,241,0.17) 0%, transparent 55%),   /* indigo — top-left */
+    radial-gradient(ellipse 60% 50% at 88%  18%, rgba(14,165,233,0.2)  0%, transparent 50%),   /* cyan — top-right  */
+    radial-gradient(ellipse 55% 55% at 50%  95%, rgba(34,197,94,0.13)  0%, transparent 55%),   /* green — bottom    */
+    radial-gradient(ellipse 45% 50% at -8%  65%, rgba(168,85,247,0.12) 0%, transparent 50%),   /* purple — left     */
+    linear-gradient(160deg, #f0f9ff 0%, #dbeafe 40%, #e0e7ff 70%, #dcfce7 100%);              /* base gradient     */
+  background-attachment: fixed;   /* gradient fixed behind scrolling content */
+  color: var(--text);
+  /* Sub-pixel font rendering for crisp text on WebKit/Firefox */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Headings: Poppins throughout — set at the root so any element can inherit */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--text);
+}
+
+
+/* ── 5. Scrollbar styling ──────────────────────────────────────────────── */
+
+/* Custom scrollbar — Webkit only (Firefox uses scrollbar-color) */
+::-webkit-scrollbar { width: 7px; }
+::-webkit-scrollbar-track { background: rgba(224,242,254,0.5); }
+/* Gradient thumb — brand colours make even the scrollbar feel on-brand */
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#0EA5E9,#6366F1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg,#0284C7,#4F46E5); }
+
+
+/* ── 6. Focus ring ─────────────────────────────────────────────────────── */
+
+/* :focus-visible (not :focus) — only shows for keyboard navigation, not mouse clicks */
+:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+
+/* ── 7. Animations ─────────────────────────────────────────────────────── */
+
+/*
+ * RULE: Entry animations ONLY — no infinite decorative loops.
+ * Using transform + opacity exclusively — GPU composited, zero layout cost.
+ *
+ * fadeUp — slides in from 18px below with fade; used on page sections and cards
+ * scaleIn — scales from 0.95→1 with fade; used on modal-like elements (empty states, 404)
+ * shimmer — used for skeleton loading placeholders (CSS-only, no JS)
+ */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Shimmer: moves a bright band left→right across a skeleton placeholder */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Animation utility classes — apply "both" fill-mode so elements start invisible */
+.animate-fade-up   { animation: fadeUp  0.5s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-scale-in  { animation: scaleIn 0.4s cubic-bezier(0.4,0,0.2,1) both; }
+
+/*
+ * Stagger helpers — add to siblings alongside .animate-fade-up to create
+ * a cascading entrance. Example: first card has no delay, second gets delay-100,
+ * third gets delay-200, etc. Cap at delay-500 to avoid long waits.
+ */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* Skeleton loading placeholder — the shimmer keyframe slides a highlight band */
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.35) 25%,
+    rgba(255,255,255,0.65) 50%,   /* bright band */
+    rgba(255,255,255,0.35) 75%
+  );
+  background-size: 200% 100%;    /* oversized so the band can scroll across */
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+
+/* ── 8. Glassmorphism utility classes ──────────────────────────────────── */
+
+/*
+ * .glass — standard glass card on the body gradient (light context).
+ *   72% white background: transparent enough for colour to show through,
+ *   opaque enough for text to be readable (WCAG 4.5:1 contrast maintained).
+ *   inset 0 1px 0 ... = top "glass edge" highlight, simulates light reflection.
+ */
+.glass {
+  background:           var(--glass-bg);
+  backdrop-filter:      var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);   /* Safari */
+  border:    1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+/*
+ * .glass-strong — heavier glass for auth/form panels.
+ *   86% white: near-solid. Used when form inputs and labels must be highly
+ *   legible without competing with the background gradient.
+ *   blur(28px): stronger blur so the gradient behind is heavily diffused.
+ */
+.glass-strong {
+  background:           var(--glass-bg-strong);
+  backdrop-filter:      var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border:    1px solid rgba(255,255,255,0.92);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/*
+ * .glass-dark — navy glass for panels sitting ON a gradient header section.
+ *   Uses a dark (navy) semi-transparent background instead of white.
+ *   The cyan border (--glass-border-dark) provides the light edge effect.
+ */
+.glass-dark {
+  background:           var(--glass-bg-dark);
+  backdrop-filter:      blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border:    1px solid var(--glass-border-dark);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+/*
+ * .glass-hero — ultra-transparent glass for elements ON hero dark backgrounds.
+ *   13% white: nearly invisible — just enough to separate the element from its
+ *   background. Used for stat chips, search bars, and cards on dark hero sections.
+ *   Border is at 20% white opacity — barely visible, but defines the edge.
+ */
+.glass-hero {
+  background:           var(--glass-bg-hero);
+  backdrop-filter:      blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+
+/* ── 9. Card hover — glass lift effect ─────────────────────────────────── */
+
+/*
+ * card-hover: applied to interactive glass cards (job cards, nav cards, etc.)
+ * On hover: lifts 3px, brightens background to 88% white, casts deeper shadow.
+ * ONLY uses transform (GPU layer) — never width/height changes (layout cost).
+ * !important overrides the inline-style background set by the element.
+ */
+.card-hover {
+  transition: var(--transition);
+  cursor: pointer;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  background: rgba(255,255,255,0.88) !important;
+  box-shadow: 0 18px 50px rgba(3,105,161,0.18), 0 0 0 1.5px rgba(14,165,233,0.2) !important;
+  border-color: rgba(14,165,233,0.3) !important;
+}
+
+
+/* ── 10. Gradient text ──────────────────────────────────────────────────── */
+
+/*
+ * -webkit-background-clip: text clips the gradient to the text shape only.
+ * -webkit-text-fill-color: transparent makes the text itself invisible,
+ * letting the clipped gradient show through.
+ * Standard background-clip: text is the unprefixed spec version.
+ *
+ * gradient-text     — blue→cyan→indigo (for headings on light backgrounds)
+ * gradient-text-hero — green→cyan→lavender (for headings on dark hero sections)
+ */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 55%, #6366F1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-hero {
+  /* Lighter palette so the text reads clearly on the dark gradient hero */
+  background: linear-gradient(135deg, #86EFAC 0%, #67E8F9 55%, #A5B4FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
+/* ── 11. Input base ─────────────────────────────────────────────────────── */
+
+/*
+ * Shared input/select/textarea style.
+ * Subtle glass background (75% white) blends inputs into glass cards.
+ * On focus: brighter background, brand-cyan border, ring glow (3px spread).
+ */
+.input-base {
+  width: 100%;
+  border: 1.5px solid rgba(203,213,225,0.8);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 0.875rem;
+  font-family: 'Open Sans', sans-serif;
+  color: var(--text);
+  background:           rgba(255,255,255,0.75);
+  backdrop-filter:      blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: var(--transition);
+}
+.input-base:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  background: rgba(255,255,255,0.95);
+  /* 3px ring + subtle shadow — same as :focus-visible but tied to brand colours */
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.15), var(--shadow-sm);
+}
+
+/*
+ * Inputs on dark hero sections (e.g. hero search bar) need white placeholder
+ * text. CSS cannot target ::placeholder via inline styles, so this utility
+ * class is applied directly to the input element.
+ */
+.placeholder-white::placeholder { color: rgba(255,255,255,0.5); }
+
+
+/* ── 12. Button styles ──────────────────────────────────────────────────── */
+
+/*
+ * btn-primary — blue gradient button. Used for primary submit actions (Sign In).
+ *   Lift on hover (translateY(-2px)) + deeper shadow = "presses" on active.
+ *   disabled: flat opacity, no cursor change to pointer, no transform.
+ */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 22px;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+  color: white;
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.875rem;
+  border-radius: 12px; border: none; cursor: pointer;
+  transition: var(--transition); text-decoration: none; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(3,105,161,0.32);
+}
+.btn-primary:hover   { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(3,105,161,0.42); }
+.btn-primary:active  { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/*
+ * btn-cta — green gradient "Call To Action" button.
+ *   Used for high-priority actions: "Get Started", "Post Job", "Post a Job".
+ *   Green = "Jobs" brand colour; visually distinct from blue primary actions.
+ */
+.btn-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 22px;
+  background: linear-gradient(135deg, var(--cta-dark), var(--cta));
+  color: white;
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.875rem;
+  border-radius: 12px; border: none; cursor: pointer;
+  transition: var(--transition); text-decoration: none; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(34,197,94,0.32);
+}
+.btn-cta:hover   { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(34,197,94,0.42); }
+.btn-cta:active  { transform: translateY(0); }
+.btn-cta:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/*
+ * btn-outline — glass ghost button for secondary actions (Cancel, Browse Jobs).
+ *   68% white glass background; brand-cyan border; no fill on rest.
+ *   On hover: background brightens to 90%, border colour intensifies.
+ */
+.btn-outline {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 22px;
+  background:           rgba(255,255,255,0.68);
+  backdrop-filter:      blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--primary);
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.875rem;
+  border-radius: 12px; border: 1.5px solid rgba(14,165,233,0.38);
+  cursor: pointer; transition: var(--transition); text-decoration: none; white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+.btn-outline:hover {
+  background: rgba(255,255,255,0.9);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+ * btn-outline-hero — white glass ghost button for dark/hero backgrounds.
+ *   12% white background + white text: blends into the hero dark gradient.
+ *   Used on the hero section CTA and landing page CTA strip.
+ *   On hover: background brightens to 22%, border to 60% white.
+ */
+.btn-outline-hero {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 22px;
+  background:           rgba(255,255,255,0.12);
+  backdrop-filter:      blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.875rem;
+  border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.35);
+  cursor: pointer; transition: var(--transition); text-decoration: none; white-space: nowrap;
+}
+.btn-outline-hero:hover {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.6);
+  transform: translateY(-2px);
+}
+
+
+/* ── 13. Layout primitives ──────────────────────────────────────────────── */
+
+.page      { min-height: 100vh; }        /* ensures footer sits at page bottom */
+.section   { padding: 88px 0; }          /* generous vertical breathing room */
+.section-sm { padding: 52px 0; }         /* tighter version for compact sections */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* Mobile: reduce section padding and horizontal gutters */
+@media (max-width: 768px) {
+  .section    { padding: 52px 0; }
+  .container  { padding: 0 16px; }
+}
+
+
+/* ── 14. Accessibility: reduced motion ─────────────────────────────────── */
+
+/*
+ * Users who opt into "prefer reduced motion" in their OS settings have
+ * vestibular disorders or motion sensitivity. We collapse all animations
+ * to near-instant (0.01ms) so the page still functions but without motion.
+ * animation-iteration-count: 1 stops infinite animations (e.g. Spinner)
+ * from looping, reducing visual noise.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:       0.01ms !important;
+    animation-iteration-count: 1    !important;
+    transition-duration:      0.01ms !important;
+  }
+}

@@ -1,0 +1,26 @@
+<!--
+  SkyJobs Favicon — Paper-plane mark on brand gradient
+  Viewbox: 48×48 | Used by index.html as /favicon.svg
+  Paper plane pointing upper-right = sky-reaching ambition + sending proposals
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <!-- Brand gradient: deep sky-blue → vibrant cyan -->
+    <linearGradient id="sj-fav-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#075985"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded-square app-icon background -->
+  <rect width="48" height="48" rx="13" fill="url(#sj-fav-grad)"/>
+
+  <!-- Paper plane — top wing (fully opaque white) -->
+  <path d="M9,22 L40,10 L23,22 Z" fill="white"/>
+
+  <!-- Paper plane — bottom wing / fuselage (60% opacity for depth) -->
+  <path d="M40,10 L23,22 L16,40 Z" fill="rgba(255,255,255,0.60)"/>
+
+  <!-- Paper plane — fold crease detail (subtle shadow plane) -->
+  <path d="M23,22 L16,40 L21,32 Z" fill="rgba(255,255,255,0.25)"/>
+</svg>
