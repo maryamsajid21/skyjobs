@@ -6,8 +6,14 @@ require("./src/models"); // load all models + associations
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:4173",
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "*",
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin) || true),
   credentials: true,
 }));
 app.use(express.json());
