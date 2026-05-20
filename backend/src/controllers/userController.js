@@ -1,4 +1,4 @@
-const { User, Review, Job } = require("../models");
+const { User, Review, Job, Bid } = require("../models");
 
 const getFreelancerProfile = async (req, res) => {
   try {
@@ -51,4 +51,29 @@ const markNotificationsRead = async (req, res) => {
   }
 };
 
-module.exports = { getFreelancerProfile, getFreelancerReviews, getNotifications, markNotificationsRead };
+const getClientProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ["password"] },
+    });
+    if (!user || user.role !== "client")
+      return res.status(404).json({ success: false, message: "Client not found" });
+
+    const jobs = await Job.findAll({
+      where: { clientId: req.params.id },
+      order: [["createdAt", "DESC"]],
+    });
+    const jobsWithBidCount = await Promise.all(
+      jobs.map(async (job) => {
+        const bidCount = await Bid.count({ where: { jobId: job.id } });
+        return { ...job.toJSON(), bidCount };
+      })
+    );
+
+    res.json({ success: true, data: { ...user.toJSON(), jobs: jobsWithBidCount } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getFreelancerProfile, getFreelancerReviews, getClientProfile, getNotifications, markNotificationsRead };

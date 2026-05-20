@@ -535,7 +535,12 @@ const JobDetailPage = () => {
                     {job.client.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p style={{ fontFamily: "Poppins,sans-serif", fontWeight: 700, color: "#0C4A6E", fontSize: "0.9rem" }}>{job.client.name}</p>
+                    {/* Client name — links to their public profile page */}
+                    <Link to={`/client/${job.client.id}`} style={{ fontFamily: "Poppins,sans-serif", fontWeight: 700, color: "#0369A1", textDecoration: "none", fontSize: "0.9rem" }}
+                      onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+                      onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+                      {job.client.name}
+                    </Link>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 3 }}>
                       <Star size={11} color="#F59E0B" fill="#F59E0B" />
                       {/* Shows numeric rating to 1 d.p., or "New" for unrated clients */}

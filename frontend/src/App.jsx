@@ -13,6 +13,7 @@ import FreelancerDashboard from "./pages/FreelancerDashboard";
 import MyBidsPage from "./pages/MyBidsPage";
 import MyJobsPage from "./pages/MyJobsPage";
 import FreelancerProfilePage from "./pages/FreelancerProfilePage";
+import ClientProfilePage from "./pages/ClientProfilePage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminJobs from "./pages/admin/AdminJobs";
@@ -30,6 +31,7 @@ function App() {
           <Route path="/jobs" element={<JobListingsPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
+          <Route path="/client/:id" element={<ClientProfilePage />} />
 
           {/* Client only */}
           <Route path="/dashboard/client" element={<ProtectedRoute roles={["client"]}><ClientDashboard /></ProtectedRoute>} />
